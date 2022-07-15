@@ -1,7 +1,7 @@
 import { loadStdlib } from "@reach-sh/stdlib";
 import * as backend from "./build/index.main.mjs";
 
-const stdlib = loadStdlib();
+const stdlib = loadStdlib(process.env);
 
 //defines a quantity of network tokens as the starting balance for each test account
 const startingBalance = stdlib.parseCurrency(100);
@@ -10,6 +10,16 @@ const startingBalance = stdlib.parseCurrency(100);
 //This will only work on the Reach-provided developer testing network
 const accAlice = await stdlib.newTestAccount(startingBalance);
 const accBob = await stdlib.newTestAccount(startingBalance);
+
+//function for displaying currency amounts with up to 4 decimal places
+const fmt = (x) => stdlib.formatCurrency(x, 4);
+
+//function for getting the balance of a participant and displaying it with up to 4 decimal places
+const getBalance = async (who) => fmt(await stdlib.balanceOf(who));
+
+//get the balance before the game starts for both Alice and Bob
+const beforeAlice = await getBalance(accAlice);
+const beforeBob = await getBalance(accBob);
 
 //Alice deploy the application
 const ctcAlice = accAlice.contract(backend);
@@ -22,24 +32,34 @@ const HAND = ["Rock", "Paper", "Scissors"];
 const OUTCOME = ["Bob Wins", "Draw", "Alice Wins"];
 
 //define a constructor for the Player implementation.
-const Player = (who) => ({
+const Player = (Who) => ({
   getHand: () => {
-    const hand = Math.floor() * 3;
-    console.log(`&{who} played ${HAND[hand]}`);
+    const hand = Math.floor(Math.random() * 3);
+    console.log(`${Who} played ${HAND[hand]}`);
     return hand;
   },
   seeOutcome: (outcome) => {
-    console.log(`${who} saw outcome ${OUTCOME[outcome]}`);
+    console.log(`${Who} saw outcome ${OUTCOME[outcome]}`);
   },
 });
 
 //wait for backends to complete
+// then initialize backend for Alice & Bob
 await Promise.all([
-  //initialize backend for Alice & Bob
   ctcAlice.p.Alice({
-    //implement Alice's interact object here
+    ...Player("Alice"),
+    wager: stdlib.parseCurrency(5),
   }),
   ctcBob.p.Bob({
-    //implement Bob's interact object here
+    ...Player("Bob"),
+    accepWager: (amt) => {
+      console.log(`Bob accepts the wager of ${fmt(amt)}.`);
+    },
   }),
 ]);
+//get balances after wagers
+const afterAlice = await getBalance(accAlice);
+const afterBob = await getBalance(accBob);
+
+console.log(`Alice went from ${beforeAlice} to ${afterAlice}`);
+console.log(`Bob went from ${beforeBob} to ${afterBob}`);
