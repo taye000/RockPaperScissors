@@ -34,7 +34,7 @@ export const main = Reach.App(() => {
 
   //states that this block of code is something that only Bob performs.
   Bob.only(() => {
-    // interact.acceptWager(wager);
+    interact.acceptWager(wager);
     const handBob = declassify(interact.getHand());
   });
   Bob.publish(handBob).pay(wager);
